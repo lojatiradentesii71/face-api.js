@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Biometria Autônoma - GitHub Pages</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; box-sizing: border-box; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); max-width: 480px; width: 100%; text-align: center; }
+    .video-box { position: relative; width: 100%; max-width: 400px; aspect-ratio: 4/3; margin: 15px auto; border-radius: 8px; overflow: hidden; background: #000; border: 3px solid #e5e7eb; }
+    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+    .status { font-size: 16px; font-weight: bold; margin: 15px 0; color: #4b5563; min-height: 24px; }
+    .btn { background: #10b981; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.2s; display: none; }
+    .btn:hover { background: #059669; }
+    .form-group { text-align: left; margin-bottom: 15px; display: none; }
+    label { font-weight: bold; font-size: 14px; color: #374151; }
+    input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 5px; box-sizing: border-box; font-size: 15px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2 id="titulo">Iniciando Biometria...</h2>
+  
+  <div class="form-group" id="grupoForm">
+    <label>ID / Matrícula:</label>
+    <input type="text" id="userId" placeholder="Ex: 1025">
+    <label style="margin-top:10px; display:block;">Nome Completo:</label>
+    <input type="text" id="userName" placeholder="Ex: João Silva">
+  </div>
+
+  <div class="video-box">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="status" id="statusTxt">Carregando motores de IA...</div>
+  <button class="btn" id="acaoBtn" onclick="executarAcaoPrincipal()">Capturar Biometria</button>
+</div>
+
+<!-- Motores carregados de repositórios oficiais abertos que o GitHub Pages acessa sem restrições -->
+<script src="https://jsdelivr.net"></script>
+<script>
+  // COLES ABAIXO O LINK DO WEB APP DO GOOGLE QUE VOCÊ COPIOU NO PASSO 1
+  const API_URL_SCRIPT = "COLE_AQUI_A_URL_DO_PASSO_1_TERMINADA_EM_EXEC";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const MODO_ATUAL = urlParams.get('mode') || 'reconhecimento'; 
+  const STATUS_TXT = document.getElementById("statusTxt");
+  const ACAO_BTN = document.getElementById("acaoBtn");
+  let videoStream = null;
+  let baseUsuarios = [];
+
+  async function iniciarSistema() {
+    try {
+      STATUS_TXT.innerText = "Carregando redes neurais biométricas...";
+      const MODEL_URL = 'https://jsdelivr.net';
+      
+      // Carrega os modelos estáveis Tiny via CDN direto no navegador do cliente
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+      
+      if (MODO_ATUAL === "cadastro") {
+        document.getElementById("titulo").innerText = "Cadastro Facial";
+        document.getElementById("grupoForm").style.display = "block";
+        ACAO_BTN.style.display = "block";
+        STATUS_TXT.innerText = "Preencha os dados e olhe para a câmera.";
+      } else {
+        document.getElementById("titulo").innerText = "Check-in Presença";
+        STATUS_TXT.innerText = "Sincronizando base de dados corporativa...";
+        
+        // Puxa a lista de assinaturas numéricas leves via API do Sheets
+        let resposta = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "obterBase" }) });
+        let json = await resposta.json();
+        baseUsuarios = json.dados || [];
+        STATUS_TXT.innerText = "Posicione seu rosto de frente para a câmera.";
+      }
+      iniciarVideo();
+    } catch (e) {
+      STATUS_TXT.innerText = "Erro na inicialização: " + e.message;
+    }
+  }
+
+  async function iniciarVideo() {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 } });
+      document.getElementById("video").srcObject = videoStream;
+      if (MODO_ATUAL === "reconhecimento") loopReconhecimento();
+    } catch(err) {
+      STATUS_TXT.innerText = "Acesso à câmera negado ou indisponível.";
+    }
+  }
+
+  async function loopReconhecimento() {
+    const video = document.getElementById("video");
+    if (baseUsuarios.length === 0) {
+      STATUS_TXT.innerText = "Nenhuma assinatura biométrica na planilha.";
+      return;
+    }
+
+    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    if (deteccao) {
+      let melhorMatch = { nome: "Desconhecido", distancia: 1.0 };
+      
+      baseUsuarios.forEach(usuario => {
+        const dist = faceapi.euclideanDistance(deteccao.descriptor, usuario.biometria);
+        if (dist < melhorMatch.distancia && dist < 0.55) { 
+          melhorMatch = { nome: usuario.nome, distancia: dist };
+        }
+      });
+
+      if (melhorMatch.nome !== "Desconhecido") {
+        STATUS_TXT.innerText = "Identificado: " + melhorMatch.nome + "!";
+        STATUS_TXT.style.color = "#10b981";
+        
+        // Envia a confirmação de presença para a planilha via API de texto
+        await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "registrarPresenca", nome: melhorMatch.nome }) });
+        alert("Ponto batido com sucesso para: " + melhorMatch.nome);
+        return; 
+      } else {
+        STATUS_TXT.innerText = "Rosto desconhecido.";
+        STATUS_TXT.style.color = "#ef4444";
+      }
+    }
+    setTimeout(loopReconhecimento, 600); 
+  }
+
+  async function executarAcaoPrincipal() {
+    const video = document.getElementById("video");
+    const id = document.getElementById("userId").value;
+    const nome = document.getElementById("userName").value;
+    
+    if (!id || !nome) { alert("Preencha o ID e o Nome."); return; }
+    STATUS_TXT.innerText = "Analisando vetor facial... Mantenha-se fixo.";
+    
+    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    if (deteccao) {
+      var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
+      
+      // Envia os 128 números em texto plano para guardar na planilha
+      await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
+      alert("Cadastro biométrico concluído!");
+      document.getElementById("userId").value = "";
+      document.getElementById("userName").value = "";
+      STATUS_TXT.innerText = "Pronto para novo cadastro.";
+    } else {
+      alert("Rosto não detectado de forma clara. Alinhe-se.");
+    }
+  }
+
+  window.onload = iniciarSistema;
+</script>
+</body>
+</html>
