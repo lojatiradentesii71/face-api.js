@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Biometria AutÙnoma - GitHub Pages</title>
+  <title>Biometria Aut√¥noma - GitHub Pages</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; box-sizing: border-box; }
     .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); max-width: 480px; width: 100%; text-align: center; }
@@ -22,10 +22,10 @@
   <h2 id="titulo">Iniciando Biometria...</h2>
   
   <div class="form-group" id="grupoForm">
-    <label>ID / MatrÌcula:</label>
+    <label>ID / Matr√≠cula:</label>
     <input type="text" id="userId" placeholder="Ex: 1025">
     <label style="margin-top:10px; display:block;">Nome Completo:</label>
-    <input type="text" id="userName" placeholder="Ex: Jo„o Silva">
+    <input type="text" id="userName" placeholder="Ex: Jo√£o Silva">
   </div>
 
   <div class="video-box">
@@ -37,10 +37,10 @@
   <button class="btn" id="acaoBtn" onclick="executarAcaoPrincipal()">Capturar Biometria</button>
 </div>
 
-<!-- Motores carregados de repositÛrios oficiais abertos que o GitHub Pages acessa sem restriÁıes -->
+<!-- Motores carregados de reposit√≥rios oficiais abertos que o GitHub Pages acessa sem restri√ß√µes -->
 <script src="./dist/face-api.js"></script>
 <script>
-  // COLES ABAIXO O LINK DO WEB APP DO GOOGLE QUE VOC  COPIOU NO PASSO 1
+  // COLES ABAIXO O LINK DO WEB APP DO GOOGLE QUE VOC√ä COPIOU NO PASSO 1
   const API_URL_SCRIPT = "COLE_AQUI_A_URL_DO_PASSO_1_TERMINADA_EM_EXEC";
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -50,35 +50,34 @@
   let videoStream = null;
   let baseUsuarios = [];
 
-  async function iniciarSistema() {
+async function iniciarSistema() {
     try {
-      STATUS_TXT.innerText = "Carregando redes neurais biomÈtricas...";
+      STATUS_TXT.innerText = "Carregando redes neurais biom√©tricas...";
       
-      // Define a rota para a pasta local clonada no seu GitHub
       const MODEL_URL = './model';
       
-      // CORRIGIDO: Alterado de underline (_) para hÌfen (-) para bater com a pasta do Fork
-      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+      // FOR√áADO: Substitua a linha antiga por esta configura√ß√£o manual com o nome real do arquivo da sua pasta
+      await faceapi.loadTinyFaceDetectorModel(MODEL_URL); 
+      await faceapi.loadFaceLandmarkModel(MODEL_URL);
+      await faceapi.loadFaceRecognitionModel(MODEL_URL);
       
       if (MODO_ATUAL === "cadastro") {
         document.getElementById("titulo").innerText = "Cadastro Facial";
         document.getElementById("grupoForm").style.display = "block";
         ACAO_BTN.style.display = "block";
-        STATUS_TXT.innerText = "Preencha os dados e olhe para a c‚mera.";
+        STATUS_TXT.innerText = "Preencha os dados e olhe para a c√¢mera.";
       } else {
-        document.getElementById("titulo").innerText = "Check-in PresenÁa";
+        document.getElementById("titulo").innerText = "Check-in Presen√ßa";
         STATUS_TXT.innerText = "Sincronizando base de dados corporativa...";
         
         let resposta = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "obterBase" }) });
         let json = await resposta.json();
         baseUsuarios = json.dados || [];
-        STATUS_TXT.innerText = "Posicione seu rosto de frente para a c‚mera.";
+        STATUS_TXT.innerText = "Posicione seu rosto de frente para a c√¢mera.";
       }
       iniciarVideo();
     } catch (e) {
-      STATUS_TXT.innerText = "Erro na inicializaÁ„o: " + e.message;
+      STATUS_TXT.innerText = "Erro na inicializa√ß√£o: " + e.message;
     }
   }
 
@@ -88,14 +87,14 @@
       document.getElementById("video").srcObject = videoStream;
       if (MODO_ATUAL === "reconhecimento") loopReconhecimento();
     } catch(err) {
-      STATUS_TXT.innerText = "Acesso ‡ c‚mera negado ou indisponÌvel.";
+      STATUS_TXT.innerText = "Acesso √† c√¢mera negado ou indispon√≠vel.";
     }
   }
 
   async function loopReconhecimento() {
     const video = document.getElementById("video");
     if (baseUsuarios.length === 0) {
-      STATUS_TXT.innerText = "Nenhuma assinatura biomÈtrica na planilha.";
+      STATUS_TXT.innerText = "Nenhuma assinatura biom√©trica na planilha.";
       return;
     }
 
@@ -114,7 +113,7 @@
         STATUS_TXT.innerText = "Identificado: " + melhorMatch.nome + "!";
         STATUS_TXT.style.color = "#10b981";
         
-        // Envia a confirmaÁ„o de presenÁa para a planilha via API de texto
+        // Envia a confirma√ß√£o de presen√ßa para a planilha via API de texto
         await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "registrarPresenca", nome: melhorMatch.nome }) });
         alert("Ponto batido com sucesso para: " + melhorMatch.nome);
         return; 
@@ -138,14 +137,14 @@
     if (deteccao) {
       var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
       
-      // Envia os 128 n˙meros em texto plano para guardar na planilha
+      // Envia os 128 n√∫meros em texto plano para guardar na planilha
       await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
-      alert("Cadastro biomÈtrico concluÌdo!");
+      alert("Cadastro biom√©trico conclu√≠do!");
       document.getElementById("userId").value = "";
       document.getElementById("userName").value = "";
       STATUS_TXT.innerText = "Pronto para novo cadastro.";
     } else {
-      alert("Rosto n„o detectado de forma clara. Alinhe-se.");
+      alert("Rosto n√£o detectado de forma clara. Alinhe-se.");
     }
   }
 
