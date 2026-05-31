@@ -54,7 +54,7 @@ async function iniciarSistema() {
     try {
       STATUS_TXT.innerText = "Carregando redes neurais biométricas...";
       
-      const MODEL_URL = './model';
+      const MODEL_URL = './weights';
       
       // FORÇADO: Substitua a linha antiga por esta configuração manual com o nome real do arquivo da sua pasta
       await faceapi.loadTinyFaceDetectorModel(MODEL_URL); 
