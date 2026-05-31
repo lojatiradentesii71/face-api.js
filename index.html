@@ -38,7 +38,7 @@
 </div>
 
 <!-- Motores carregados de repositórios oficiais abertos que o GitHub Pages acessa sem restrições -->
-<script src="https://jsdelivr.net"></script>
+<script src="./dist/face-api.js"></script>
 <script>
   // COLES ABAIXO O LINK DO WEB APP DO GOOGLE QUE VOCÊ COPIOU NO PASSO 1
   const API_URL_SCRIPT = "COLE_AQUI_A_URL_DO_PASSO_1_TERMINADA_EM_EXEC";
@@ -53,7 +53,7 @@
   async function iniciarSistema() {
     try {
       STATUS_TXT.innerText = "Carregando redes neurais biométricas...";
-      const MODEL_URL = 'https://jsdelivr.net';
+      const MODEL_URL = './model';
       
       // Carrega os modelos estáveis Tiny via CDN direto no navegador do cliente
       await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
