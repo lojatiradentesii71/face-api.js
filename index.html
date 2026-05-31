@@ -53,9 +53,11 @@
   async function iniciarSistema() {
     try {
       STATUS_TXT.innerText = "Carregando redes neurais biométricas...";
+      
+      // Define a rota para a pasta local clonada no seu GitHub
       const MODEL_URL = './model';
       
-      // Carrega os modelos estáveis Tiny via CDN direto no navegador do cliente
+      // CORRIGIDO: Alterado de underline (_) para hífen (-) para bater com a pasta do Fork
       await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
       await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
       await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
@@ -69,7 +71,6 @@
         document.getElementById("titulo").innerText = "Check-in Presença";
         STATUS_TXT.innerText = "Sincronizando base de dados corporativa...";
         
-        // Puxa a lista de assinaturas numéricas leves via API do Sheets
         let resposta = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "obterBase" }) });
         let json = await resposta.json();
         baseUsuarios = json.dados || [];
