@@ -98,13 +98,13 @@ async function iniciarSistema() {
       return;
     }
 
-    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4})).withFaceLandmarks().withFaceDescriptor();
     if (deteccao) {
       let melhorMatch = { nome: "Desconhecido", distancia: 1.0 };
       
       baseUsuarios.forEach(usuario => {
         const dist = faceapi.euclideanDistance(deteccao.descriptor, usuario.biometria);
-        if (dist < melhorMatch.distancia && dist < 0.55) { 
+        if (dist < melhorMatch.distancia && dist < 0.62) { 
           melhorMatch = { nome: usuario.nome, distancia: dist };
         }
       });
