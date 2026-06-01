@@ -167,14 +167,15 @@ async function executarCapturaCamera() {
     const video = document.getElementById("videoCadastro");
     const id = document.getElementById("userId").value;
     const nome = document.getElementById("userName").value;
-    const txt = document.getElementById("statusCadastroTxt");
     
-    // Busca o botão dinamicamente no momento do clique (Imune a erros de carregamento/Null)
+    // BUSCA DINÂMICA BLINDADA: Aceita os IDs novos e os antigos de versões anteriores
     const botaoAlvo = document.getElementById("btnCapturarCam") || document.getElementById("acaoBtn");
+    const statusAlvo = document.getElementById("statusCadastroTxt") || document.getElementById("statusTxt");
     
     if (!id || !nome) { alert("Preencha a matrícula e o nome."); return; }
     
-    txt.innerText = "Escaneando feição " + contagemFotos + "/3...";
+    if (statusAlvo) statusAlvo.innerText = "Escaneando feição " + contagemFotos + "/3...";
+    
     const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
     
     if (deteccao) {
@@ -186,11 +187,11 @@ async function executarCapturaCamera() {
       if (contagemFotos === 1) {
         contagemFotos = 2;
         if (botaoAlvo) botaoAlvo.innerText = "2ª Foto: Olhe para a Esquerda";
-        txt.innerText = "Primeira foto (Frente) processada! Mova a cabeça levemente para a esquerda.";
+        if (statusAlvo) statusAlvo.innerText = "Primeira foto (Frente) processada! Mova a cabeça levemente para a esquerda.";
       } else if (contagemFotos === 2) {
         contagemFotos = 3;
         if (botaoAlvo) botaoAlvo.innerText = "3ª Foto: Olhe para a Direita";
-        txt.innerText = "Segunda foto salva! Mova a cabeça levemente para a direita.";
+        if (statusAlvo) statusAlvo.innerText = "Segunda foto salva! Mova a cabeça levemente para a direita.";
       } else if (contagemFotos === 3) {
         alert("Lote biométrico integrado com sucesso!");
         
@@ -198,7 +199,7 @@ async function executarCapturaCamera() {
         document.getElementById("userId").value = "";
         document.getElementById("userName").value = "";
         if (botaoAlvo) botaoAlvo.innerText = "Capturar Biometria";
-        txt.innerText = "Cadastro concluído com sucesso!";
+        if (statusAlvo) statusAlvo.innerText = "Cadastro concluído com sucesso!";
         contagemFotos = 1;
         
         // Fecha a janela após o sucesso (Ação vinda do AppSheet)
