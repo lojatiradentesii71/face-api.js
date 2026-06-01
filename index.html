@@ -163,50 +163,44 @@
   }
 
   // GERENCIADOR DE CAPTURA MULTI-ÂNGULO (3 FOTOS)
-  async function executarAcaoPrincipal() {
-    const video = document.getElementById("video");
+  async function executarCapturaCamera() {
+    const video = document.getElementById("videoCadastro");
     const id = document.getElementById("userId").value;
     const nome = document.getElementById("userName").value;
+    const btn = document.getElementById("btnCapturarCam");
+    const txt = document.getElementById("statusCadastroTxt");
     
-    if (!id || !nome) { alert("Preencha o ID e o Nome."); return; }
+    if (!id || !nome) { alert("Preencha a matrícula e o nome."); return; }
     
-    STATUS_TXT.innerText = "Analisando foto " + contagemFotos + "/3... Mantenha-se fixo.";
+    txt.innerText = "Escaneando feição " + contagemFotos + "/3...";
     const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
     
     if (deteccao) {
-      // Guarda a assinatura numérica atual na memória temporária
-      assinaturasCadastro.push(Array.from(deteccao.descriptor));
+      var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
+      
+      // Envia os dados para o novo Code.gs que organiza as colunas C e D
+      await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
       
       if (contagemFotos === 1) {
         contagemFotos = 2;
-        ACAO_BTN.innerText = "2ª Foto: Incline a cabeça para a Esquerda";
-        ACAO_BTN.style.background = "#f59e0b";
-        STATUS_TXT.innerText = "Vire levemente para a esquerda e clique no botão.";
+        btn.innerText = "2ª Foto: Olhe para a Esquerda";
+        txt.innerText = "Primeira foto (Frente) salva! Mova a cabeça levemente para a esquerda.";
       } else if (contagemFotos === 2) {
         contagemFotos = 3;
-        ACAO_BTN.innerText = "3ª Foto: Incline a cabeça para a Direita";
-        ACAO_BTN.style.background = "#3b82f6";
-        STATUS_TXT.innerText = "Vire levemente para a direita e clique no botão.";
+        btn.innerText = "3ª Foto: Olhe para a Direita";
+        txt.innerText = "Segunda foto salva! Mova a cabeça levemente para a direita.";
       } else if (contagemFotos === 3) {
-        STATUS_TXT.innerText = "Enviando pacote biométrico completo...";
-        
-        // Compacta o lote das 3 fotos em uma única string estruturada para a planilha
-        var stringLoteVetor = JSON.stringify(assinaturasCadastro);
-        
-        await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringLoteVetor }) });
-        
-        alert("Cadastro biométrico multi-ângulo concluído com sucesso!");
+        alert("Lote biométrico integrado com sucesso!");
         document.getElementById("userId").value = "";
         document.getElementById("userName").value = "";
-        ACAO_BTN.innerText = "Capturar Biometria";
-        ACAO_BTN.style.background = "#10b981";
-        STATUS_TXT.innerText = "Pronto para novo cadastro.";
-        assinaturasCadastro = [];
+        btn.innerText = "Tirar Foto Multi-Ângulo";
+        txt.innerText = "Cadastro completo. Retornando ao painel.";
         contagemFotos = 1;
+        inicializarIA();
+        alternarAbas('painel-dashboard', document.getElementById("btnMenuDash"));
       }
     } else {
-      alert("Rosto não detectado. Alinhe o ângulo e tente novamente esta foto.");
-      STATUS_TXT.innerText = "Falha na leitura da foto " + contagemFotos + ". Tente de novo.";
+      alert("Nenhum rosto focado. Alinhe-se e tente novamente.");
     }
   }
 
