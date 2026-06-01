@@ -163,11 +163,14 @@
   }
 
   // GERENCIADOR DE CAPTURA MULTI-ÂNGULO (3 FOTOS)
-  async function executarCapturaCamera() {
+async function executarCapturaCamera() {
     const video = document.getElementById("videoCadastro");
     const id = document.getElementById("userId").value;
     const nome = document.getElementById("userName").value;
     const txt = document.getElementById("statusCadastroTxt");
+    
+    // Busca o botão dinamicamente no momento do clique (Imune a erros de carregamento/Null)
+    const botaoAlvo = document.getElementById("btnCapturarCam") || document.getElementById("acaoBtn");
     
     if (!id || !nome) { alert("Preencha a matrícula e o nome."); return; }
     
@@ -182,11 +185,11 @@
       
       if (contagemFotos === 1) {
         contagemFotos = 2;
-        if (ACAO_BTN) ACAO_BTN.innerText = "2ª Foto: Olhe para a Esquerda";
+        if (botaoAlvo) botaoAlvo.innerText = "2ª Foto: Olhe para a Esquerda";
         txt.innerText = "Primeira foto (Frente) processada! Mova a cabeça levemente para a esquerda.";
       } else if (contagemFotos === 2) {
         contagemFotos = 3;
-        if (ACAO_BTN) ACAO_BTN.innerText = "3ª Foto: Olhe para a Direita";
+        if (botaoAlvo) botaoAlvo.innerText = "3ª Foto: Olhe para a Direita";
         txt.innerText = "Segunda foto salva! Mova a cabeça levemente para a direita.";
       } else if (contagemFotos === 3) {
         alert("Lote biométrico integrado com sucesso!");
@@ -194,11 +197,11 @@
         // Limpa os campos para um próximo cadastro
         document.getElementById("userId").value = "";
         document.getElementById("userName").value = "";
-        if (ACAO_BTN) ACAO_BTN.innerText = "Capturar Biometria";
+        if (botaoAlvo) botaoAlvo.innerText = "Capturar Biometria";
         txt.innerText = "Cadastro concluído com sucesso!";
         contagemFotos = 1;
         
-        // Como é uma aba aberta pela Action do AppSheet, fecha a janela após o sucesso
+        // Fecha a janela após o sucesso (Ação vinda do AppSheet)
         setTimeout(() => { window.close(); }, 1500);
       }
     } else {
