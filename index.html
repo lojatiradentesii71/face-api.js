@@ -164,19 +164,22 @@
 
   // GERENCIADOR DE CAPTURA MULTI-ÂNGULO (3 FOTOS)
 async function executarCapturaCamera() {
-    const video = document.getElementById("videoCadastro");
+    // BUSCA DINÂMICA BLINDADA DA CÂMERA: Aceita tanto videoCadastro quanto video normal
+    const videoAlvo = document.getElementById("videoCadastro") || document.getElementById("video");
     const id = document.getElementById("userId").value;
     const nome = document.getElementById("userName").value;
     
-    // BUSCA DINÂMICA BLINDADA: Aceita os IDs novos e os antigos de versões anteriores
+    // Busca dinâmica do botão e do texto de status
     const botaoAlvo = document.getElementById("btnCapturarCam") || document.getElementById("acaoBtn");
     const statusAlvo = document.getElementById("statusCadastroTxt") || document.getElementById("statusTxt");
     
     if (!id || !nome) { alert("Preencha a matrícula e o nome."); return; }
+    if (!videoAlvo) { alert("Câmera não localizada na página."); return; }
     
     if (statusAlvo) statusAlvo.innerText = "Escaneando feição " + contagemFotos + "/3...";
     
-    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
+    // Alimenta a IA com o elemento de vídeo correto e validado dinamicamente
+    const deteccao = await faceapi.detectSingleFace(videoAlvo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
     
     if (deteccao) {
       var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
