@@ -49,35 +49,67 @@
   const ACAO_BTN = document.getElementById("acaoBtn");
   let videoStream = null;
   let baseUsuarios = [];
+  
+  // Variáveis para controle do fluxo multi-ângulo e tempo limite
+  let assinaturasCadastro = []; 
+  let contagemFotos = 1;
+  let cronometroReconhecimento = null;
+  let tempoRestante = 10; // 10 segundos de tolerância na tela
 
-async function iniciarSistema() {
+  async function iniciarSistema() {
     try {
       STATUS_TXT.innerText = "Carregando redes neurais biométricas...";
+      const MODEL_URL = './weights'; // Aponta para a sua pasta real weights
       
-      const MODEL_URL = './weights';
-      
-      // FORÇADO: Substitua a linha antiga por esta configuração manual com o nome real do arquivo da sua pasta
       await faceapi.loadTinyFaceDetectorModel(MODEL_URL); 
       await faceapi.loadFaceLandmarkModel(MODEL_URL);
       await faceapi.loadFaceRecognitionModel(MODEL_URL);
       
       if (MODO_ATUAL === "cadastro") {
-        document.getElementById("titulo").innerText = "Cadastro Facial";
+        document.getElementById("titulo").innerText = "Cadastro Facial Multi-Ângulo";
         document.getElementById("grupoForm").style.display = "block";
         ACAO_BTN.style.display = "block";
-        STATUS_TXT.innerText = "Preencha os dados e olhe para a câmera.";
+        ACAO_BTN.innerText = "1ª Foto: Olhe de Frente";
+        STATUS_TXT.innerText = "Preencha os dados e prepare-se.";
       } else {
         document.getElementById("titulo").innerText = "Check-in Presença";
-        STATUS_TXT.innerText = "Sincronizando base de dados corporativa...";
+        STATUS_TXT.innerText = "Sincronizando base de dados...";
         
         let resposta = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "obterBase" }) });
         let json = await resposta.json();
         baseUsuarios = json.dados || [];
         STATUS_TXT.innerText = "Posicione seu rosto de frente para a câmera.";
+        
+        // Inicia a contagem regressiva de 10 segundos
+        iniciarContadorTempoLimite();
       }
       iniciarVideo();
     } catch (e) {
       STATUS_TXT.innerText = "Erro na inicialização: " + e.message;
+    }
+  }
+
+  function iniciarContadorTempoLimite() {
+    tempoRestante = 10;
+    cronometroReconhecimento = setInterval(() => {
+      tempoRestante--;
+      if (MODO_ATUAL === "reconhecimento" && STATUS_TXT.style.color !== "rgb(16, 185, 129)") {
+        STATUS_TXT.innerText = "Escaneando... Tempo restante: " + tempoRestante + "s";
+      }
+      
+      if (tempoRestante <= 0) {
+        clearInterval(cronometroReconhecimento);
+        pararVideo();
+        STATUS_TXT.innerText = "Erro: Tempo limite esgotado! Rosto não reconhecido.";
+        STATUS_TXT.style.color = "#ef4444";
+        alert("Falha no reconhecimento. Por favor, tente novamente em um ambiente mais iluminado.");
+      }
+    }, 1000);
+  }
+
+  function pararVideo() {
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
     }
   }
 
@@ -92,63 +124,92 @@ async function iniciarSistema() {
   }
 
   async function loopReconhecimento() {
+    if (tempoRestante <= 0) return; // Para o processamento se estourou o tempo
     const video = document.getElementById("video");
+    
     if (baseUsuarios.length === 0) {
       STATUS_TXT.innerText = "Nenhuma assinatura biométrica na planilha.";
+      clearInterval(cronometroReconhecimento);
       return;
     }
 
-    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4})).withFaceLandmarks().withFaceDescriptor();
+    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
+    
     if (deteccao) {
       let melhorMatch = { nome: "Desconhecido", distancia: 1.0 };
       
       baseUsuarios.forEach(usuario => {
-        const dist = faceapi.euclideanDistance(deteccao.descriptor, usuario.biometria);
-        if (dist < melhorMatch.distancia && dist < 0.62) { 
-          melhorMatch = { nome: usuario.nome, distancia: dist };
-        }
+        // Como o cadastro agora guarda uma lista de arrays, varre as 3 fotos cadastradas da pessoa
+        usuario.biometria.forEach(vetorIndividual => {
+          const dist = faceapi.euclideanDistance(deteccao.descriptor, new Float32Array(vetorIndividual));
+          if (dist < melhorMatch.distancia && dist < 0.62) { 
+            melhorMatch = { nome: usuario.nome, distancia: dist };
+          }
+        });
       });
 
       if (melhorMatch.nome !== "Desconhecido") {
+        clearInterval(cronometroReconhecimento);
         STATUS_TXT.innerText = "Identificado: " + melhorMatch.nome + "!";
         STATUS_TXT.style.color = "#10b981";
         
-        // Envia a confirmação de presença para a planilha via API de texto
         await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "registrarPresenca", nome: melhorMatch.nome }) });
         alert("Ponto batido com sucesso para: " + melhorMatch.nome);
+        pararVideo();
         return; 
-      } else {
-        STATUS_TXT.innerText = "Rosto desconhecido.";
-        STATUS_TXT.style.color = "#ef4444";
       }
     }
-    setTimeout(loopReconhecimento, 600); 
+    setTimeout(loopReconhecimento, 500); 
   }
 
+  // GERENCIADOR DE CAPTURA MULTI-ÂNGULO (3 FOTOS)
   async function executarAcaoPrincipal() {
     const video = document.getElementById("video");
     const id = document.getElementById("userId").value;
     const nome = document.getElementById("userName").value;
     
     if (!id || !nome) { alert("Preencha o ID e o Nome."); return; }
-    STATUS_TXT.innerText = "Analisando vetor facial... Mantenha-se fixo.";
     
-    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    STATUS_TXT.innerText = "Analisando foto " + contagemFotos + "/3... Mantenha-se fixo.";
+    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
+    
     if (deteccao) {
-      var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
+      // Guarda a assinatura numérica atual na memória temporária
+      assinaturasCadastro.push(Array.from(deteccao.descriptor));
       
-      // Envia os 128 números em texto plano para guardar na planilha
-      await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
-      alert("Cadastro biométrico concluído!");
-      document.getElementById("userId").value = "";
-      document.getElementById("userName").value = "";
-      STATUS_TXT.innerText = "Pronto para novo cadastro.";
+      if (contagemFotos === 1) {
+        contagemFotos = 2;
+        ACAO_BTN.innerText = "2ª Foto: Incline a cabeça para a Esquerda";
+        ACAO_BTN.style.background = "#f59e0b";
+        STATUS_TXT.innerText = "Vire levemente para a esquerda e clique no botão.";
+      } else if (contagemFotos === 2) {
+        contagemFotos = 3;
+        ACAO_BTN.innerText = "3ª Foto: Incline a cabeça para a Direita";
+        ACAO_BTN.style.background = "#3b82f6";
+        STATUS_TXT.innerText = "Vire levemente para a direita e clique no botão.";
+      } else if (contagemFotos === 3) {
+        STATUS_TXT.innerText = "Enviando pacote biométrico completo...";
+        
+        // Compacta o lote das 3 fotos em uma única string estruturada para a planilha
+        var stringLoteVetor = JSON.stringify(assinaturasCadastro);
+        
+        await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringLoteVetor }) });
+        
+        alert("Cadastro biométrico multi-ângulo concluído com sucesso!");
+        document.getElementById("userId").value = "";
+        document.getElementById("userName").value = "";
+        ACAO_BTN.innerText = "Capturar Biometria";
+        ACAO_BTN.style.background = "#10b981";
+        STATUS_TXT.innerText = "Pronto para novo cadastro.";
+        assinaturasCadastro = [];
+        contagemFotos = 1;
+      }
     } else {
-      alert("Rosto não detectado de forma clara. Alinhe-se.");
+      alert("Rosto não detectado. Alinhe o ângulo e tente novamente esta foto.");
+      STATUS_TXT.innerText = "Falha na leitura da foto " + contagemFotos + ". Tente de novo.";
     }
   }
 
   window.onload = iniciarSistema;
 </script>
-</body>
-</html>
+  
