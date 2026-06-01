@@ -129,7 +129,7 @@
 <script src="./dist/face-api.js"></script>
 <script>
   // COLe A URL DO SEU APPS SCRIPT TERMINADA EM /exec
-  const API_URL_SCRIPT = "SUA_URL_DO_PASSO_1_TERMINADA_EM_EXEC";
+  const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_CSXM4il10xsCBkNNUaVoioww3LrGNtfko2Ipmip6bCRH2jeTJQX/exec";
 
   let videoStream = null;
   let baseUsuarios = [];
@@ -162,4 +162,151 @@
     botaoMenu.classList.add('active');
     
     document.getElementById("previewImg").style.display = "none";
+
+    if (idAba === 'painel-camera') {
+      ligarCamera("videoReconhecimento");
+      loopIaAtivo = true;
+      executarLoopReconhecimento();
+    } else if (idAba === 'painel-cadastro') {
+      ligarCamera("videoCadastro");
+    }
+  }
+
+  async function ligarCamera(idVideo) {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 } });
+      document.getElementById(idVideo).srcObject = videoStream;
+    } catch(err) {
+      console.log("Câmera desativada ou sem permissão.");
+    }
+  }
+
+  function pararCamera() {
+    loopIaAtivo = false;
+    if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); }
+    document.getElementById("sucessoTela").style.display = "none";
+    document.getElementById("visorReconhecimentoBox").style.display = "block";
+  }
+
+  // RECONHECIMENTO EM TEMPO REAL COMPARANDO COM AS BIOMETRIAS ACUMULADAS
+  async function executarLoopReconhecimento() {
+    if (!loopIaAtivo) return;
+    const video = document.getElementById("videoReconhecimento");
+    
+    if (video && video.srcObject) {
+      const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
+      if (deteccao) {
+        let melhorMatch = null;
+        let menorDistancia = 1.0;
+        
+        baseUsuarios.forEach(usuario => {
+          usuario.biometria.forEach(vetorSalvo => {
+            const dist = faceapi.euclideanDistance(deteccao.descriptor, new Float32Array(vetorSalvo));
+            if (dist < menorDistancia && dist < 0.62) { 
+              menorDistancia = dist;
+              melhorMatch = usuario;
+            }
+          });
+        });
+
+        if (melhorMatch) {
+          loopIaAtivo = false;
+          pararCamera();
+          document.getElementById("userNome").innerText = melhorMatch.nome;
+          document.getElementById("sucessoTela").style.display = "flex";
+          document.getElementById("visorReconhecimentoBox").style.display = "none";
+          
+          await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "registrarPresenca", nome:melhorMatch.nome }) });
+          setTimeout(() => { alternarAbas('painel-dashboard', document.querySelectorAll('.menu-btn')); }, 4000);
+          return;
+        }
+      }
+    }
+    setTimeout(executarLoopReconhecimento, 600);
+  }
+  // MÓDULO DE ARQUIVOS: Lê fotos salvas e acumula os vetores locais no navegador
+  async function processarFotoArquivoLocal(input) {
+    const id = document.getElementById("userId").value;
+    const nome = document.getElementById("userName").value;
+    const txt = document.getElementById("statusCadastroTxt");
+    
+    if (!id || !nome) { alert("Por favor, digite a matrícula e o nome antes de anexar o arquivo."); input.value=""; return; }
+    if (!input.files || !input.files[0]) return;
+    
+    txt.innerText = "Processando imagem do arquivo localmente...";
+    pararCamera();
+    
+    const arquivo = input.files[0];
+    const imgElement = document.getElementById("previewImg");
+    imgElement.src = URL.createObjectURL(arquivo);
+    imgElement.style.display = "block";
+    document.getElementById("videoCadastro").style.display = "none";
+    
+    imgElement.onload = async function() {
+      const deteccao = await faceapi.detectSingleFace(imgElement, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
+      
+      if (deteccao) {
+        txt.innerText = "Assinatura extraída! Enviando acúmulo biométrico para a planilha...";
+        var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
+        
+        let envio = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
+        let resposta = await envio.json();
+        
+        alert(resposta.msg);
+        txt.innerText = "Foto integrada com sucesso ao histórico!";
+        input.value = "";
+        inicializarIA(); 
+      } else {
+        alert("A inteligência artificial não conseguiu mapear um rosto claro nesta foto. Escolha outra imagem.");
+        txt.innerText = "Erro na varredura do arquivo.";
+        input.value = "";
+      }
+    };
+  }
+
+  // CAPTURA TRADICIONAL POR CÂMERA MULTI-ÂNGULO
+  async function executarCapturaCamera() {
+    const video = document.getElementById("videoCadastro");
+    const id = document.getElementById("userId").value;
+    const nome = document.getElementById("userName").value;
+    const btn = document.getElementById("btnCapturarCam");
+    const txt = document.getElementById("statusCadastroTxt");
+    
+    if (!id || !nome) { alert("Preencha a matrícula e o nome."); return; }
+    
+    txt.innerText = "Escaneando feição " + contagemFotos + "/3...";
+    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 })).withFaceLandmarks().withFaceDescriptor();
+    
+    if (deteccao) {
+      var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
+      
+      await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
+      
+      if (contagemFotos === 1) {
+        contagemFotos = 2;
+        btn.innerText = "2ª Foto: Olhe para a Esquerda";
+        txt.innerText = "Assinatura 1 salva! Vire o rosto levemente para a esquerda.";
+      } else if (contagemFotos === 2) {
+        contagemFotos = 3;
+        btn.innerText = "3ª Foto: Olhe para a Direita";
+        txt.innerText = "Assinatura 2 salva! Vire o rosto levemente para a direita.";
+      } else if (contagemFotos === 3) {
+        alert("Lote de fotos integradas com sucesso!");
+        document.getElementById("userId").value = "";
+        document.getElementById("userName").value = "";
+        btn.innerText = "Tirar Foto Multi-Ângulo";
+        txt.innerText = "Cadastro completo. Retornando ao painel.";
+        contagemFotos = 1;
+        inicializarIA();
+        alternarAbas('painel-dashboard', document.querySelectorAll('.menu-btn')[0]);
+      }
+    } else {
+      alert("Nenhum rosto focado. Alinhe-se e tente novamente.");
+    }
+  }
+
+  window.onload = inicializarIA;
+</script>
+</body>
+</html>
     document.getElementById("videoCadastro").style.display = "block";
