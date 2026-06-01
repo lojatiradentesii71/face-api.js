@@ -2,153 +2,164 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Biometria Autônoma - GitHub Pages</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel - Reconhecimento Facial</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; box-sizing: border-box; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); max-width: 480px; width: 100%; text-align: center; }
-    .video-box { position: relative; width: 100%; max-width: 400px; aspect-ratio: 4/3; margin: 15px auto; border-radius: 8px; overflow: hidden; background: #000; border: 3px solid #e5e7eb; }
-    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
-    .status { font-size: 16px; font-weight: bold; margin: 15px 0; color: #4b5563; min-height: 24px; }
-    .btn { background: #10b981; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.2s; display: none; }
-    .btn:hover { background: #059669; }
-    .form-group { text-align: left; margin-bottom: 15px; display: none; }
-    label { font-weight: bold; font-size: 14px; color: #374151; }
-    input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 5px; box-sizing: border-box; font-size: 15px; }
+    :root {
+      --bg-principal: #12093a;
+      --bg-cards: rgba(255, 255, 255, 0.04);
+      --border-cards: rgba(255, 255, 255, 0.08);
+      --neon-azul: #00f2fe;
+      --neon-verde: #10b981;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg-principal); margin: 0; padding: 0; display: flex; min-height: 100vh; color: white; box-sizing: border-box; }
+    .sidebar { width: 260px; background: rgba(0, 0, 0, 0.2); border-right: 1px solid var(--border-cards); padding: 25px 15px; display: flex; flex-direction: column; box-sizing: border-box; }
+    .sidebar-titulo { font-size: 18px; font-weight: bold; margin-bottom: 35px; display: flex; align-items: center; gap: 10px; padding-left: 10px; }
+    .sidebar-titulo span { color: var(--neon-azul); font-size: 20px; }
+    .menu-btn { background: none; border: none; color: rgba(255, 255, 255, 0.6); padding: 14px 18px; text-align: left; font-size: 15px; font-weight: 600; border-radius: 10px; cursor: pointer; margin-bottom: 8px; transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
+    .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; }
+    .menu-btn.active { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+    .conteudo { flex-grow: 1; padding: 40px; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; }
+    .aba-painel { display: none; width: 100%; animation: fadeIn 0.3s ease-out forwards; }
+    .aba-painel.active { display: block; }
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .card-metrica { background: var(--bg-cards); border: 1px solid var(--border-cards); backdrop-filter: blur(10px); padding: 22px; border-radius: 16px; display: flex; flex-direction: column; position: relative; }
+    .card-label { font-size: 13px; color: rgba(255, 255, 255, 0.5); font-weight: 500; margin-bottom: 5px; }
+    .card-valor { font-size: 32px; font-weight: bold; }
+    .card-status-ok { color: var(--neon-verde); font-size: 15px; font-weight: bold; display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+    .painel-principal { background: var(--bg-cards); border: 1px solid var(--border-cards); border-radius: 20px; padding: 30px; max-width: 600px; width: 100%; margin: 0 auto; text-align: center; backdrop-filter: blur(10px); }
+    .video-box { position: relative; width: 100%; aspect-ratio: 4/3; margin: 20px auto; border-radius: 14px; overflow: hidden; background: #000; border: 2px solid rgba(255, 255, 255, 0.1); }
+    video, canvas, #previewImg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+    #previewImg { transform: none; object-fit: cover; display: none; }
+    .form-group { text-align: left; margin-bottom: 18px; }
+    label { font-weight: 600; font-size: 13px; color: rgba(255,255,255,0.7); display: block; margin-bottom: 6px; }
+    input { width: 100%; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-cards); border-radius: 8px; color: white; box-sizing: border-box; font-size: 15px; }
+    input:focus { border-color: var(--neon-azul); outline: none; }
+    .btn-acao { background: var(--neon-verde); color: white; border: none; padding: 14px 24px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; transition: opacity 0.2s; margin-top: 10px; }
+    .btn-secundario { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-cards); color: white; padding: 10px 20px; font-size: 14px; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%; font-weight: 600; }
+    
+    /* INTERFACE DE SUCESSO COPIADA DO SEU MODELO */
+    .sucesso-overlay { display: none; background: rgba(255, 255, 255, 0.02); border-radius: 16px; padding: 20px; width: 100%; box-sizing: border-box; text-align: left; align-items: center; position: relative; border: 1px solid var(--border-cards); margin-top: 20px; }
+    .sucesso-avatar { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 3px solid var(--neon-azul); box-shadow: 0 0 15px var(--neon-azul); margin-right: 20px; }
+    .sucesso-texto-box { flex-grow: 1; }
+    .boas-vindas { font-size: 13px; color: rgba(255, 255, 255, 0.5); margin: 0; }
+    .sucesso-nome { font-size: 22px; font-weight: bold; color: white; margin: 3px 0 0 0; text-transform: uppercase; letter-spacing: 1px; }
+    .badge-identificado { background: rgba(16, 185, 129, 0.15); color: var(--neon-verde); border: 1px solid rgba(16, 185, 129, 0.3); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; position: absolute; right: 20px; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2 id="titulo">Iniciando Biometria...</h2>
-  
-  <div class="form-group" id="grupoForm">
-    <label>ID / Matrícula:</label>
-    <input type="text" id="userId" placeholder="Ex: 1025">
-    <label style="margin-top:10px; display:block;">Nome Completo:</label>
-    <input type="text" id="userName" placeholder="Ex: João Silva">
+  <div class="sidebar">
+    <div class="sidebar-titulo"><span>☉</span> Painel Biométrico</div>
+    <button class="menu-btn active" onclick="alternarAbas('painel-dashboard', this)">编 Dashboard</button>
+    <button class="menu-btn" onclick="alternarAbas('painel-cadastro', this)">👤 Cadastrar</button>
+    <button class="menu-btn" onclick="alternarAbas('painel-camera', this)">📷 Câmera</button>
   </div>
 
-  <div class="video-box">
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="canvas"></canvas>
+  <div class="conteudo">
+    
+    <!-- ABA 1: DASHBOARD -->
+    <div id="painel-dashboard" class="aba-painel active">
+      <div class="grid-cards">
+        <div class="card-metrica">
+          <div class="card-label">Status do Sistema</div>
+          <div class="card-status-ok">● Operacional</div>
+        </div>
+        <div class="card-metrica">
+          <div class="card-label">Total de Funcionários</div>
+          <div class="card-valor" id="dashTotalAlunos">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 2: CADASTRO INTELIGENTE (CÂMERA EM TEMPO REAL OU ENVIO DE FOTOS SALVAS) -->
+    <div id="painel-cadastro" class="aba-painel">
+      <div class="painel-principal">
+        <h2 style="margin-top:0;">Banco de Dados Biométrico</h2>
+        <div class="form-group">
+          <label>ID / Matrícula do Funcionário:</label>
+          <input type="text" id="userId" placeholder="Ex: 1025">
+        </div>
+        <div class="form-group">
+          <label>Nome Completo:</label>
+          <input type="text" id="userName" placeholder="Ex: João Silva">
+        </div>
+        
+        <div class="video-box">
+          <video id="videoCadastro" autoplay playsinline muted></video>
+          <img id="previewImg" alt="Preview da Foto">
+        </div>
+        
+        <div class="status-txt" id="statusCadastroTxt">Escolha entre usar a câmera viva ou subir fotos salvas.</div>
+        
+        <!-- BOTÕES GÊMEOS DE SELEÇÃO DE ESTRATÉGIA -->
+        <button class="btn-acao" id="btnCapturarCam" onclick="executarCapturaCamera()">Tirar Foto Multi-Ângulo</button>
+        <button class="btn-secundario" onclick="document.getElementById('fileInput').click()">Módulo: Enviar Fotos Salvas (Acúmulo)</button>
+        <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="processarFotoArquivoLocal(this)">
+      </div>
+    </div>
+
+    <!-- ABA 3: CÂMERA DE RECONHECIMENTO (CHECK-IN) -->
+    <div id="painel-camera" class="aba-painel">
+      <div class="painel-principal">
+        <h2 style="margin-top:0;">Check-in Presença</h2>
+        <div class="video-box" id="visorReconhecimentoBox">
+          <video id="videoReconhecimento" autoplay playsinline muted></video>
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="status-txt" id="statusReconhecimentoTxt">Carregando inteligência artificial...</div>
+        
+        <div class="sucesso-overlay" id="sucessoTela">
+          <div class="sucesso-container" style="display:flex; width:100%; align-items:center;">
+            <img src="https://placeholder.com" class="sucesso-avatar" id="userFoto" alt="Avatar">
+            <div class="sucesso-texto-box">
+              <p class="boas-vindas">Bem-vindo de volta,</p>
+              <div class="sucesso-nome" id="userNome">FUNCIONÁRIO</div>
+            </div>
+            <div class="badge-identificado">Identificado</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <div class="status" id="statusTxt">Carregando motores de IA...</div>
-  <button class="btn" id="acaoBtn" onclick="executarAcaoPrincipal()">Capturar Biometria</button>
-</div>
-
-<!-- Motores carregados de repositórios oficiais abertos que o GitHub Pages acessa sem restrições -->
 <script src="./dist/face-api.js"></script>
 <script>
-  // COLES ABAIXO O LINK DO WEB APP DO GOOGLE QUE VOCÊ COPIOU NO PASSO 1
-  const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_CSXM4il10xsCBkNNUaVoioww3LrGNtfko2Ipmip6bCRH2jeTJQX/exec";
+  // COLe A URL DO SEU APPS SCRIPT TERMINADA EM /exec
+  const API_URL_SCRIPT = "SUA_URL_DO_PASSO_1_TERMINADA_EM_EXEC";
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const MODO_ATUAL = urlParams.get('mode') || 'reconhecimento'; 
-  const STATUS_TXT = document.getElementById("statusTxt");
-  const ACAO_BTN = document.getElementById("acaoBtn");
   let videoStream = null;
   let baseUsuarios = [];
+  let assinaturasCadastro = [];
+  let contagemFotos = 1;
+  let loopIaAtivo = false;
 
-async function iniciarSistema() {
+  async function inicializarIA() {
     try {
-      STATUS_TXT.innerText = "Carregando redes neurais biométricas...";
-      
       const MODEL_URL = './weights';
-      
-      // FORÇADO: Substitua a linha antiga por esta configuração manual com o nome real do arquivo da sua pasta
       await faceapi.loadTinyFaceDetectorModel(MODEL_URL); 
       await faceapi.loadFaceLandmarkModel(MODEL_URL);
       await faceapi.loadFaceRecognitionModel(MODEL_URL);
       
-      if (MODO_ATUAL === "cadastro") {
-        document.getElementById("titulo").innerText = "Cadastro Facial";
-        document.getElementById("grupoForm").style.display = "block";
-        ACAO_BTN.style.display = "block";
-        STATUS_TXT.innerText = "Preencha os dados e olhe para a câmera.";
-      } else {
-        document.getElementById("titulo").innerText = "Check-in Presença";
-        STATUS_TXT.innerText = "Sincronizando base de dados corporativa...";
-        
-        let resposta = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "obterBase" }) });
-        let json = await resposta.json();
-        baseUsuarios = json.dados || [];
-        STATUS_TXT.innerText = "Posicione seu rosto de frente para a câmera.";
-      }
-      iniciarVideo();
+      let resposta = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "obterBase" }) });
+      let json = await resposta.json();
+      baseUsuarios = json.dados || [];
+      document.getElementById("dashTotalAlunos").innerText = baseUsuarios.length;
+      document.getElementById("statusReconhecimentoTxt").innerText = "Redes neurais prontas. Aguardando rosto.";
     } catch (e) {
-      STATUS_TXT.innerText = "Erro na inicialização: " + e.message;
+      console.error("Erro IA: " + e.message);
     }
   }
 
-  async function iniciarVideo() {
-    try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 } });
-      document.getElementById("video").srcObject = videoStream;
-      if (MODO_ATUAL === "reconhecimento") loopReconhecimento();
-    } catch(err) {
-      STATUS_TXT.innerText = "Acesso à câmera negado ou indisponível.";
-    }
-  }
-
-  async function loopReconhecimento() {
-    const video = document.getElementById("video");
-    if (baseUsuarios.length === 0) {
-      STATUS_TXT.innerText = "Nenhuma assinatura biométrica na planilha.";
-      return;
-    }
-
-    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4})).withFaceLandmarks().withFaceDescriptor();
-    if (deteccao) {
-      let melhorMatch = { nome: "Desconhecido", distancia: 1.0 };
-      
-      baseUsuarios.forEach(usuario => {
-        const dist = faceapi.euclideanDistance(deteccao.descriptor, usuario.biometria);
-        if (dist < melhorMatch.distancia && dist < 0.62) { 
-          melhorMatch = { nome: usuario.nome, distancia: dist };
-        }
-      });
-
-      if (melhorMatch.nome !== "Desconhecido") {
-        STATUS_TXT.innerText = "Identificado: " + melhorMatch.nome + "!";
-        STATUS_TXT.style.color = "#10b981";
-        
-        // Envia a confirmação de presença para a planilha via API de texto
-        await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "registrarPresenca", nome: melhorMatch.nome }) });
-        alert("Ponto batido com sucesso para: " + melhorMatch.nome);
-        return; 
-      } else {
-        STATUS_TXT.innerText = "Rosto desconhecido.";
-        STATUS_TXT.style.color = "#ef4444";
-      }
-    }
-    setTimeout(loopReconhecimento, 600); 
-  }
-
-  async function executarAcaoPrincipal() {
-    const video = document.getElementById("video");
-    const id = document.getElementById("userId").value;
-    const nome = document.getElementById("userName").value;
+  function alternarAbas(idAba, botaoMenu) {
+    pararCamera();
+    document.querySelectorAll('.aba-painel').forEach(aba => aba.classList.remove('active'));
+    document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(idAba).classList.add('active');
+    botaoMenu.classList.add('active');
     
-    if (!id || !nome) { alert("Preencha o ID e o Nome."); return; }
-    STATUS_TXT.innerText = "Analisando vetor facial... Mantenha-se fixo.";
-    
-    const deteccao = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-    if (deteccao) {
-      var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
-      
-      // Envia os 128 números em texto plano para guardar na planilha
-      await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
-      alert("Cadastro biométrico concluído!");
-      document.getElementById("userId").value = "";
-      document.getElementById("userName").value = "";
-      STATUS_TXT.innerText = "Pronto para novo cadastro.";
-    } else {
-      alert("Rosto não detectado de forma clara. Alinhe-se.");
-    }
-  }
-
-  window.onload = iniciarSistema;
-</script>
-</body>
-</html>
+    document.getElementById("previewImg").style.display = "none";
+    document.getElementById("videoCadastro").style.display = "block";
