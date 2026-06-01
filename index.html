@@ -52,7 +52,7 @@
 
   <div class="sidebar">
     <div class="sidebar-titulo"><span>☉</span> Painel Biométrico</div>
-    <button class="menu-btn active" onclick="alternarAbas('painel-dashboard', this)">📊 Dashboard</button>
+    <button class="menu-btn active" id="btnMenuDash" onclick="alternarAbas('painel-dashboard', this)">📊 Dashboard</button>
     <button class="menu-btn" onclick="alternarAbas('painel-cadastro', this)">👤 Cadastrar</button>
     <button class="menu-btn" onclick="alternarAbas('painel-camera', this)">📷 Câmera</button>
   </div>
@@ -124,10 +124,11 @@
 
   </div>
 
-<script src="./dist/face-api.js"></script>
+<!-- CDN PROFISSIONAL ULTRA-ESTÁVEL SEM TRAVAS DE IMPORTS/EXPORTS -->
+<script src="https://cloudflare.com"></script>
 <script>
-  // ATENÇÃO: COLe A URL DO SEU APPS SCRIPT TERMINADA EM /exec ENTRE AS ASPAS
-const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_CSXM4il10xsCBkNNUaVoioww3LrGNtfko2Ipmip6bCRH2jeTJQX/exec";
+  // INSIRA O LINK /exec DO SEU GOOGLE APPS SCRIPT ENTRE AS ASPAS ABAIXO:
+  const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_CSXM4il10xsCBkNNUaVoioww3LrGNtfko2Ipmip6bCRH2jeTJQX/exec";
 
   let videoStream = null;
   let baseUsuarios = [];
@@ -136,10 +137,11 @@ const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_
 
   async function inicializarIA() {
     try {
+      // Como o cdnjs usa a estrutura padrão da biblioteca, ele lê a sua pasta /weights direto
       const MODEL_URL = './weights';
-      await faceapi.loadTinyFaceDetectorModel(MODEL_URL); 
-      await faceapi.loadFaceLandmarkModel(MODEL_URL);
-      await faceapi.loadFaceRecognitionModel(MODEL_URL);
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
       
       let resposta = await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "obterBase" }) });
       let json = await resposta.json();
@@ -156,8 +158,10 @@ const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_
     document.querySelectorAll('.aba-painel').forEach(aba => aba.classList.remove('active'));
     document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(idAba).classList.add('active');
-    botaoMenu.classList.add('active');
     
+    if (botaoMenu) {
+      botaoMenu.classList.add('active');
+    }
     document.getElementById("previewImg").style.display = "none";
     document.getElementById("videoCadastro").style.display = "block";
     
@@ -165,7 +169,7 @@ const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_
       ligarCamera("videoReconhecimento");
       loopIaAtivo = true;
       executarLoopReconhecimento();
-      } else if (idAba === 'painel-cadastro') {
+    } else if (idAba === 'painel-cadastro') {
       ligarCamera("videoCadastro");
     }
   }
@@ -214,7 +218,7 @@ const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_
           document.getElementById("visorReconhecimentoBox").style.display = "none";
           
           await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "registrarPresenca", nome: melhorMatch.nome }) });
-          setTimeout(() => { alternarAbas('painel-dashboard', document.querySelectorAll('.menu-btn')[0]); }, 4000);
+          setTimeout(() => { alternarAbas('painel-dashboard', document.getElementById("btnMenuDash")); }, 4000);
           return;
         }
       }
@@ -294,7 +298,7 @@ const API_URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyH_W4mUblycuKa_
         txt.innerText = "Cadastro completo. Retornando ao painel.";
         contagemFotos = 1;
         inicializarIA();
-        alternarAbas('painel-dashboard', document.querySelectorAll('.menu-btn')[0]);
+        alternarAbas('painel-dashboard', document.getElementById("btnMenuDash"));
       }
     } else {
       alert("Nenhum rosto focado. Alinhe-se e tente novamente.");
