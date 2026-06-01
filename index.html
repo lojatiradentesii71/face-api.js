@@ -167,7 +167,6 @@
     const video = document.getElementById("videoCadastro");
     const id = document.getElementById("userId").value;
     const nome = document.getElementById("userName").value;
-    const btn = document.getElementById("btnCapturarCam");
     const txt = document.getElementById("statusCadastroTxt");
     
     if (!id || !nome) { alert("Preencha a matrícula e o nome."); return; }
@@ -178,32 +177,39 @@
     if (deteccao) {
       var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
       
-      // Envia os dados para o novo Code.gs que organiza as colunas C e D
+      // Envia os dados para o Code.gs que organiza as colunas C e D
       await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
       
       if (contagemFotos === 1) {
         contagemFotos = 2;
-        btn.innerText = "2ª Foto: Olhe para a Esquerda";
-        txt.innerText = "Primeira foto (Frente) salva! Mova a cabeça levemente para a esquerda.";
+        if (ACAO_BTN) ACAO_BTN.innerText = "2ª Foto: Olhe para a Esquerda";
+        txt.innerText = "Primeira foto (Frente) processada! Mova a cabeça levemente para a esquerda.";
       } else if (contagemFotos === 2) {
         contagemFotos = 3;
-        btn.innerText = "3ª Foto: Olhe para a Direita";
+        if (ACAO_BTN) ACAO_BTN.innerText = "3ª Foto: Olhe para a Direita";
         txt.innerText = "Segunda foto salva! Mova a cabeça levemente para a direita.";
       } else if (contagemFotos === 3) {
         alert("Lote biométrico integrado com sucesso!");
+        
+        // Limpa os campos para um próximo cadastro
         document.getElementById("userId").value = "";
         document.getElementById("userName").value = "";
-        btn.innerText = "Tirar Foto Multi-Ângulo";
-        txt.innerText = "Cadastro completo. Retornando ao painel.";
+        if (ACAO_BTN) ACAO_BTN.innerText = "Capturar Biometria";
+        txt.innerText = "Cadastro concluído com sucesso!";
         contagemFotos = 1;
-        inicializarIA();
-        alternarAbas('painel-dashboard', document.getElementById("btnMenuDash"));
+        
+        // Como é uma aba aberta pela Action do AppSheet, fecha a janela após o sucesso
+        setTimeout(() => { window.close(); }, 1500);
       }
     } else {
       alert("Nenhum rosto focado. Alinhe-se e tente novamente.");
     }
   }
 
-  window.onload = iniciarSistema;
+  window.onload = inicializarIA;
 </script>
+</body>
+</html>
+
+  
   
