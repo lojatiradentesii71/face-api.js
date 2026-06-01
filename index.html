@@ -265,7 +265,7 @@
     };
   }
 
-  // CAPTURA TRADICIONAL POR CÂMERA MULTI-ÂNGULO
+  // CAPTURA TRADICIONAL POR CÂMERA MULTI-ÂNGULO ATUALIZADA
   async function executarCapturaCamera() {
     const video = document.getElementById("videoCadastro");
     const id = document.getElementById("userId").value;
@@ -281,33 +281,29 @@
     if (deteccao) {
       var stringVetor = JSON.stringify(Array.from(deteccao.descriptor));
       
+      // Envia a assinatura biométrica para salvar na coluna D
       await fetch(API_URL_SCRIPT, { method: "POST", body: JSON.stringify({ action: "salvarCadastro", id: id, nome: nome, biometria: stringVetor }) });
       
       if (contagemFotos === 1) {
         contagemFotos = 2;
         btn.innerText = "2ª Foto: Olhe para a Esquerda";
-        txt.innerText = "Assinatura 1 salva! Vire o rosto levemente para a esquerda.";
+        txt.innerText = "Primeira foto (Frente) processada! Mova a cabeça levemente para a esquerda.";
       } else if (contagemFotos === 2) {
         contagemFotos = 3;
         btn.innerText = "3ª Foto: Olhe para a Direita";
-        txt.innerText = "Assinatura 2 salva! Vire o rosto levemente para a direita.";
+        txt.innerText = "Segunda foto salva! Mova a cabeça levemente para a direita.";
       } else if (contagemFotos === 3) {
-        alert("Lote de fotos integradas com sucesso!");
+        alert("Lote biométrico integrado com sucesso!");
         document.getElementById("userId").value = "";
         document.getElementById("userName").value = "";
         btn.innerText = "Tirar Foto Multi-Ângulo";
         txt.innerText = "Cadastro completo. Retornando ao painel.";
         contagemFotos = 1;
         inicializarIA();
-        alternarAbas('painel-dashboard', document.querySelectorAll('.menu-btn')[0]);
+        alternarAbas('painel-dashboard', document.querySelectorAll('.menu-btn'));
       }
     } else {
       alert("Nenhum rosto focado. Alinhe-se e tente novamente.");
     }
   }
-
-  window.onload = inicializarIA;
-</script>
-</body>
-</html>
     
