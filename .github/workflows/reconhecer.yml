@@ -1,0 +1,35 @@
+name: Reconhecimento Facial AppSheet
+
+on:
+  workflow_dispatch:
+    inputs:
+      linha_id:
+        description: 'ID da Linha'
+        required: true
+      foto_url:
+        description: 'URL da Foto'
+        required: true
+
+jobs:
+  reconhecer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o Código do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar o Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instalar Dependências
+        run: |
+          npm install @tensorflow/tfjs-node canvas gspread google-auth-library axios
+
+      - name: Executar o Motor de Inteligência Artificial
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          FOTO_URL: ${{ github.event.inputs.foto_url }}
+          LINHA_ID: ${{ github.event.inputs.linha_id }}
+        run: |
+          node motor-ia.js
